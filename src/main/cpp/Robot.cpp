@@ -8,9 +8,7 @@
 
 Robot::Robot() {}
 
-void Robot::RobotPeriodic() {
-  frc2::CommandScheduler::GetInstance().Run();
-}
+void Robot::RobotPeriodic() {}
 
 void Robot::DisabledInit() {}
 
@@ -18,31 +16,19 @@ void Robot::DisabledPeriodic() {}
 
 void Robot::DisabledExit() {}
 
-void Robot::AutonomousInit() {
-  m_autonomousCommand = m_container.GetAutonomousCommand();
-
-  if (m_autonomousCommand) {
-    m_autonomousCommand->Schedule();
-  }
-}
+void Robot::AutonomousInit() {}
 
 void Robot::AutonomousPeriodic() {}
 
 void Robot::AutonomousExit() {}
 
-void Robot::TeleopInit() {
-  if (m_autonomousCommand) {
-    m_autonomousCommand->Cancel();
-  }
-}
+void Robot::TeleopInit() {}
 
 void Robot::TeleopPeriodic() {}
 
 void Robot::TeleopExit() {}
 
-void Robot::TestInit() {
-  frc2::CommandScheduler::GetInstance().CancelAll();
-}
+void Robot::TestInit() {}
 
 void Robot::TestPeriodic() {}
 
