@@ -20,7 +20,6 @@ frc::ChassisSpeeds MoveToPose::move(frc::Pose2d current, frc::Pose2d desired) {
         {
             m_rotation = angularRotation(desired.Rotation());
             m_translation = linearTranslation(desired);
-            m_MoveToState++;
             break;
         }
         default:
@@ -68,7 +67,7 @@ units::degrees_per_second_t MoveToPose::angularRotation(frc::Rotation2d desired)
                 frc::TrapezoidProfile<units::degrees>::State{units::degree_t{m_turn}, 0_deg_per_s}    // insert the better end state here       
             );
 
-            m_angularVelocity = setPoint.velocity;
+            m_angularVelocity = -setPoint.velocity;
 
             if (m_Profile.IsFinished(m_timer.Get())) {
                 m_MoveAngleToState++;
@@ -109,7 +108,7 @@ std::pair<units::feet_per_second_t, units::feet_per_second_t> MoveToPose::linear
         double y = (desiredy - currenty) * (desiredy - currenty);
         
         m_distance = sqrt(x + y);
-        double theta =  atan2(desiredy - currenty, desiredx - currentx);
+        double theta =  -atan2(desiredy - currenty, desiredx - currentx);
         m_vxCoeff = cos(theta);
         m_vyCoeff = sin(theta);
 
@@ -125,8 +124,8 @@ std::pair<units::feet_per_second_t, units::feet_per_second_t> MoveToPose::linear
         );
 
 
-        m_vx = setDistance.velocity.to<double>() * m_vxCoeff;
-        m_vy = setDistance.velocity.to<double>() * m_vyCoeff;
+        m_vx = -setDistance.velocity.to<double>() * m_vxCoeff;
+        m_vy = -setDistance.velocity.to<double>() * m_vyCoeff;
 
         // make the robot move with vx vy
 
