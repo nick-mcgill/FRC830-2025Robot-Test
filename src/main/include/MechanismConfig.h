@@ -32,7 +32,7 @@ namespace ratbot
     }
     namespace IntakeConfig
     {
-        frc::Rotation2d ROTATION_TO_FEEDER = frc::Rotation2d(units::degree_t{90.0});
+        frc::Rotation2d ROTATION_TO_FEEDER = frc::Rotation2d(units::degree_t{54.0});
     }
     namespace VisionConfig
     {
