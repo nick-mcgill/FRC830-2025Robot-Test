@@ -13,19 +13,19 @@ namespace ratbot
     {
         namespace Flywheel
         {
-            const double P = 0.0;
+            const double P = 0.00025;
             const double I = 0.0;
-            const double D = 0.0;
+            const double D = 0.35;
             const double F = 0.0;
-            const double VEL_CONV_FACTOR = 0.0;
-            const double CURRENT_LIM = 0.0;
+            const double VEL_CONV_FACTOR = 1.0;
+            const double CURRENT_LIM = 30.0;
             const bool INVERTED = false;
             rev::spark::SparkBaseConfig::IdleMode IDLE_MODE = rev::spark::SparkBaseConfig::IdleMode::kCoast;
         }
 
         namespace Indexer
         {
-            const double CURRENT_LIM = 0.0;
+            const double CURRENT_LIM = 20.0;
             const bool INVERTED = false;
             rev::spark::SparkBaseConfig::IdleMode IDLE_MODE = rev::spark::SparkBaseConfig::IdleMode::kCoast;
         } 
