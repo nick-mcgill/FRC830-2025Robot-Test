@@ -13,6 +13,7 @@
 
 Robot::Robot() {
   m_cam = std::make_shared<PhotonVisionCamera>("FRC_830-CAM", ratbot::VisionConfig::ROBOT_TO_CAMERA);
+  
   SwerveInit();
   
   m_autoChooser = pathplanner::AutoBuilder::buildAutoChooser();
