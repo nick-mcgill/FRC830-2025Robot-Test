@@ -24,6 +24,7 @@
 #include "ControllerInterface.h"
 #include "RobotControlData.h"
 #include "MoveToPose.h"
+#include "InputManager/CoralLauncherManager.h"
 
 class Robot : public frc::TimedRobot {
  public:
@@ -59,6 +60,7 @@ class Robot : public frc::TimedRobot {
   ControllerInterface _controller_interface;
   RobotControlData _robot_control_data;
   MoveToPose m_rotateToFeeder;
+  CoralLauncherManager m_coralLauncherManager;
 
   int m_state = 0;
   frc2::Command* m_auto;
