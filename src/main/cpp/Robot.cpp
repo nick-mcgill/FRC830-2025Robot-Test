@@ -102,7 +102,7 @@ void Robot::TeleopPeriodic() {
   bool userWantsToSmartPlan = _robot_control_data.plannerInput.Left_L1
                             || _robot_control_data.plannerInput.Right_L1
                             || _robot_control_data.plannerInput.Left_L2
-                               _robot_control_data.plannerInput.Right_L2;
+                            || _robot_control_data.plannerInput.Right_L2;
 
   if (userWantsToSmartPlan)
   {
