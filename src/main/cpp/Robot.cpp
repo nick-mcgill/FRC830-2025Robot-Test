@@ -99,10 +99,10 @@ void Robot::TeleopPeriodic() {
   // frc::SmartDashboard::PutNumber("Data.y", y);
   _controller_interface.UpdateRobotControlData(_robot_control_data);
 
-  bool userWantsToSmartPlan = m_smartPlanner.plannerInput.Left_L1
-                            || m_smartPlanner.plannerInput.Right_L1
-                            || m_smartPlanner.plannerInput.Left_L2
-                               m_smartPlanner.plannerInput.Right_L2;
+  bool userWantsToSmartPlan = _robot_control_data.plannerInput.Left_L1
+                            || _robot_control_data.plannerInput.Right_L1
+                            || _robot_control_data.plannerInput.Left_L2
+                               _robot_control_data.plannerInput.Right_L2;
 
   if (userWantsToSmartPlan)
   {
