@@ -1,30 +1,54 @@
 #include "HAL/AlgaeRemoverHAL.h"
-#include <rev/config/SparkMaxConfig.h>
-#include "ratpack/SparkMaxDebugMacro.h"
-#include "MechanismConfig.h"
 
 AlgaeRemover::AlgaeRemover()
 {
-    rev::spark::SparkMaxConfig pivot_config{};
+    ctre::phoenix6::configs::TalonFXConfiguration arm_config{};
+
+    ctre::phoenix6::configs::Slot0Configs &slot0Configs = arm_config.Slot0
+        .WithKP(ratbot::AlgaeRemoverConfig::Pivot::P)
+        .WithKI(ratbot::AlgaeRemoverConfig::Pivot::I)
+        .WithKD(ratbot::AlgaeRemoverConfig::Pivot::D);
+
+    ctre::phoenix6::configs::FeedbackConfigs &arm_feedback_config = arm_config.Feedback
+        .WithSensorToMechanismRatio(ratbot::AlgaeRemoverConfig::Pivot::POS_CONV_FACTOR);
+    
+    ctre::phoenix6::configs::MotorOutputConfigs &arm_output_config = arm_config.MotorOutput
+        .WithInverted(ratbot::AlgaeRemoverConfig::Pivot::INVERTED)
+        .WithNeutralMode(ratbot::AlgaeRemoverConfig::Pivot::IDLE_MODE);
+    
+    ctre::phoenix6::configs::CurrentLimitsConfigs &arm_currentlim_config = arm_config.CurrentLimits
+        .WithSupplyCurrentLimit(ratbot::AlgaeRemoverConfig::Pivot::CURRENT_LIM)
+        .WithSupplyCurrentLimitEnable(true);
+        
+    ctre::phoenix6::configs::VoltageConfigs &arm_voltage_config = arm_config.Voltage
+        .WithPeakForwardVoltage(units::volt_t(ratbot::VOLTAGE_COMPENSATION))
+        .WithPeakReverseVoltage(-units::volt_t(ratbot::VOLTAGE_COMPENSATION));
+
+    arm_config
+        .WithSlot0(slot0Configs)
+        .WithFeedback(arm_feedback_config)
+        .WithMotorOutput(arm_output_config)
+        .WithCurrentLimits(arm_currentlim_config)
+        .WithVoltage(arm_voltage_config);
+        
+    /* Retry config apply up to 5 times, report if failure */
+    ctre::phoenix::StatusCode status = ctre::phoenix::StatusCode::StatusCodeNotInitialized;
+    for (int i = 0; i < 5; ++i) {
+        status = m_armMotor.GetConfigurator().Apply(arm_config);
+        if (status.IsOK()) break;
+    }
+    if (!status.IsOK()) {
+        std::cout << "Could not apply configs, error code: " << status.GetName() << std::endl;
+    }
+
+    // Remover Config    
     rev::spark::SparkMaxConfig remover_config{};
-
-    pivot_config.closedLoop.SetFeedbackSensor(rev::spark::ClosedLoopConfig::FeedbackSensor::kPrimaryEncoder);
-    pivot_config.closedLoop.Pidf(ratbot::AlgaeRemoverConfig::Pivot::P,ratbot::AlgaeRemoverConfig::Pivot::I,ratbot::AlgaeRemoverConfig::Pivot::D,ratbot::AlgaeRemoverConfig::Pivot::F);
-    pivot_config.encoder.VelocityConversionFactor(ratbot::AlgaeRemoverConfig::Pivot::VEL_CONV_FACTOR);
-    pivot_config.Inverted(ratbot::AlgaeRemoverConfig::Pivot::INVERTED);
-    pivot_config.SetIdleMode(ratbot::AlgaeRemoverConfig::Pivot::IDLE_MODE);
-    pivot_config.SmartCurrentLimit(ratbot::AlgaeRemoverConfig::Pivot::CURRENT_LIM); 
-    pivot_config.VoltageCompensation(ratbot::VOLTAGE_COMPENSATION); 
-
+    remover_config
+        .Inverted(ratbot::AlgaeRemoverConfig::Remover::INVERTED)
+        .SetIdleMode(ratbot::AlgaeRemoverConfig::Remover::IDLE_MODE)
+        .SmartCurrentLimit(ratbot::AlgaeRemoverConfig::Remover::CURRENT_LIM)
+        .VoltageCompensation(ratbot::VOLTAGE_COMPENSATION);
     remover_config.closedLoop.SetFeedbackSensor(rev::spark::ClosedLoopConfig::FeedbackSensor::kPrimaryEncoder);
-    remover_config.Inverted(ratbot::AlgaeRemoverConfig::Remover::INVERTED);
-    remover_config.SetIdleMode(ratbot::AlgaeRemoverConfig::Remover::IDLE_MODE);
-    remover_config.SmartCurrentLimit(ratbot::AlgaeRemoverConfig::Remover::CURRENT_LIM);
-    remover_config.VoltageCompensation(ratbot::VOLTAGE_COMPENSATION);
-
-    START_RETRYING(PIVOT_MOTOR_CONFIG)
-    m_armMotor.Configure(pivot_config, rev::spark::SparkMax::ResetMode::kResetSafeParameters, rev::spark::SparkMax::PersistMode::kPersistParameters);
-    END_RETRYING
 
     START_RETRYING(REMOVER_MOTOR_CONFIG)
     m_removerMotor.Configure(remover_config, rev::spark::SparkMax::ResetMode::kResetSafeParameters, rev::spark::SparkMax::PersistMode::kPersistParameters);
@@ -32,18 +56,18 @@ AlgaeRemover::AlgaeRemover()
 }
 
 double AlgaeRemover::GetPivotAngle()
-{
-    return m_ArmMotorAbsEncoder.GetPosition();
+{    
+    return m_armMotor.GetPosition().GetValueAsDouble();
 }
 
 double AlgaeRemover::GetWheelSpeed()
 {
-    return m_armMotor.GetEncoder().GetVelocity();
+     return m_armMotor.GetVelocity().GetValueAsDouble();
 }
 
 void AlgaeRemover::ProfiledMoveToAngle(double angle)
 {
-    if (std::abs(angle - m_ProfileStartPos) > 0.0001)
+    if (std::fabs(angle - m_ProfileStartPos) > 0.0001)
     {
         m_algaeRemoverState = 0;
     }
@@ -110,7 +134,7 @@ void AlgaeRemover::SetAngle(double angle)
         angle = ratbot::AlgaeRemoverConfig::Pivot::MIN_PIVOT_ANGLE;
     }
 
-    m_armMotorPID.SetReference(angle, rev::spark::SparkMax::ControlType::kPosition);
+    m_armMotor.SetPosition(units::angle::turn_t(angle/360.0 * 4096.0)); //documentation
 }
 
 void AlgaeRemover::SetRemoverSpeed(double speed)

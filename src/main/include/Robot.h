@@ -23,6 +23,7 @@
 #include "MoveToPose.h"
 #include "InputManager/ClimberManager.h"
 #include "InputManager/CoralLauncherManager.h"
+#include "InputManager/AlgaeRemoverManager.h"
 #include "SmartPlanner.h"
 
 class Robot : public frc::TimedRobot {
@@ -60,7 +61,8 @@ class Robot : public frc::TimedRobot {
   RobotControlData _robot_control_data;
   MoveToPose m_rotateToFeeder;
   CoralLauncherManager m_coralLauncherManager;
-
+  AlgaeRemoverManager m_algaeRemoverManager;
+  
   int m_state = 0;
   frc2::Command* m_auto;
 

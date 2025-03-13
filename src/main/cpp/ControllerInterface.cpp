@@ -7,6 +7,7 @@ void ControllerInterface::UpdateRobotControlData(RobotControlData &controlData)
     UpdateLauncherInput(controlData);
     UpdateSmartplannerInput(controlData);
     UpdateClimberInput(controlData);
+    UpdateAlgaeArmInput(controlData);
 
     // code for the VibrateController function
     if (m_timer.Get().value()>=m_globalDuration)
@@ -15,6 +16,7 @@ void ControllerInterface::UpdateRobotControlData(RobotControlData &controlData)
         m_pilot.SetRumble(frc::GenericHID::RumbleType::kRightRumble, 0.0);
     }
 };
+
 void ControllerInterface::UpdateClimberInput(RobotControlData &controlData)
 {
     // if ((m_copilot.GetRightY() > 0.1)||(m_copilot.GetLeftY() > 0.1)){
@@ -64,6 +66,22 @@ void ControllerInterface::UpdateSwerveInput(RobotControlData &controlData)
     m_prevRightFeederButtonValue = tempTargetRightFeeder;
 }
 
+void ControllerInterface::UpdateAlgaeArmInput(RobotControlData &controlData)
+{
+    if (m_copilot.GetLeftBumperButtonPressed()) 
+    {
+        controlData.algaeInput.RunRemoverBottom = true;
+    }
+    else if (m_copilot.GetRightBumperButtonPressed()) 
+    {
+        controlData.algaeInput.RunRemoverTop = true;
+    }
+    else if (m_copilot.GetStartButtonPressed()) 
+    {
+        controlData.algaeInput.RunRemoverStow = true;
+    }
+}
+
 void ControllerInterface::UpdateLauncherInput(RobotControlData &controlData){
     controlData.coralInput.setFlywheelToL1Speed = m_copilot.GetAButton();
     controlData.coralInput.setFlywheelToL2Speed = m_copilot.GetBButton();
@@ -87,10 +105,10 @@ void ControllerInterface::UpdateLauncherInput(RobotControlData &controlData){
 
 void ControllerInterface::UpdateSmartplannerInput(RobotControlData &controlData)
 {
-    if (m_copilot.GetLeftTriggerAxis() > 0.1) {controlData.plannerInput.Left_L1 = true;}
-    else if (m_copilot.GetRightTriggerAxis() > 0.1) {controlData.plannerInput.Right_L1 = true;}
-    else if (m_copilot.GetLeftBumper()) {controlData.plannerInput.Left_L2 = true;}
-    else if (m_copilot.GetRightBumper()) {controlData.plannerInput.Right_L2 = true;}
+   // if (m_copilot.GetLeftTriggerAxis() > 0.1) {controlData.plannerInput.Left_L1 = true;}
+   // else if (m_copilot.GetRightTriggerAxis() > 0.1) {controlData.plannerInput.Right_L1 = true;}
+    if (m_copilot.GetLeftTriggerAxis() > 0.1) {controlData.plannerInput.Left_L2 = true;}
+    else if (m_copilot.GetRightTriggerAxis() > 0.1) {controlData.plannerInput.Right_L2 = true;}
     else 
     {
         controlData.plannerInput.Left_L1 = false;
