@@ -27,11 +27,17 @@ class AlgaeRemover
         AlgaeRemover(); 
         ~AlgaeRemover() = default;
 
+        void MoveArm(double value);
         void ProfiledMoveToAngle(double angle);
         void SetRemoverSpeed(double speed);
+        void ResetState();
 
         double GetPivotAngle();
         double GetWheelSpeed(); 
+
+        void PivotAngleToTop();
+        void PivotAngleToBottom();
+        void PivotAngleToStow();
 
     private:
         void SetAngle(double angle);

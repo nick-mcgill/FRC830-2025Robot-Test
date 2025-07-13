@@ -37,7 +37,7 @@ void WPISwerveDrive::Configure(SwerveConfig &config){
             pathplanner::PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
         ),
         pathplanner_config,
-        []() { return false;},
+        []() { return true;},
         {nullptr}
     );
 
@@ -72,16 +72,18 @@ void WPISwerveDrive::Drive(double x_position, double y_position, units::degrees_
      (units::feet_per_second_t)y_position * m_maxDriveSpeed, 
      omega);
 }
-
+#include <iostream>
 void WPISwerveDrive::Drive(units::feet_per_second_t vx, units::feet_per_second_t vy, units::degrees_per_second_t omega) {
     frc::SmartDashboard::PutNumber("Omega", static_cast<double>(omega));
 
     if (!m_orientation)
     {
+        //std::cout << "robot" << std::endl;
         Drive(frc::ChassisSpeeds{vx, vy, omega});   
     }
     else
     {
+        //std::cout << "field" << std::endl;
         frc::ChassisSpeeds speeds = frc::ChassisSpeeds::FromFieldRelativeSpeeds(vx, vy, omega, m_gyro->GetRawHeading());
         Drive(speeds);
     }
@@ -108,18 +110,21 @@ void WPISwerveDrive::Drive(std::vector<frc::SwerveModuleState> &state) {
 
     if (!m_ebrake)
     {
-        bool lockSwerveModules = true;
-        for (int i = 0; i < state.size(); i++)
+        if (m_shouldSwerveLock)
         {
-            lockSwerveModules = lockSwerveModules && (std::fabs(double(state[i].speed) < 0.01));
-        }
+            bool lockSwerveModules = true;
+            for (int i = 0; i < state.size(); i++)
+            {
+                lockSwerveModules = lockSwerveModules && (std::fabs(double(state[i].speed) < 0.01));
+            }
 
-        if (lockSwerveModules)
-        {
-            state[0].angle = frc::Rotation2d(units::degree_t(315.0));
-            state[1].angle = frc::Rotation2d(units::degree_t(45.0));
-            state[2].angle = frc::Rotation2d(units::degree_t(45.0));
-            state[3].angle = frc::Rotation2d(units::degree_t(315.0));
+            if (lockSwerveModules)
+            {
+                state[0].angle = frc::Rotation2d(units::degree_t(315.0));
+                state[1].angle = frc::Rotation2d(units::degree_t(45.0));
+                state[2].angle = frc::Rotation2d(units::degree_t(45.0));
+                state[3].angle = frc::Rotation2d(units::degree_t(315.0));
+            }
         }
 
         for(int i = 0; i < state.size(); i++){
@@ -179,7 +184,15 @@ frc::ChassisSpeeds WPISwerveDrive::GetRobotRelativeSpeeds()
 void WPISwerveDrive::UpdatePoseWithVision(frc::Pose3d pose3d, units::second_t timestamp)
 {
     frc::Pose2d pose{frc::Translation2d{pose3d.X(), pose3d.Y()}, m_gyro->GetHeading()};
-    m_estimator->AddVisionMeasurement(pose, timestamp);
+    if (!m_visionResetOccurred)
+    {
+        m_estimator->ResetPose(pose);
+        m_visionResetOccurred = true;
+    }
+    else
+    {
+        m_estimator->AddVisionMeasurement(pose, timestamp);
+    }
 }
 
 double WPISwerveDrive::ApplyDeadzone(double input)
@@ -215,4 +228,9 @@ std::pair<double, double> WPISwerveDrive::ApplyCylindricalDeadzone(double x, dou
     }
 
     return std::make_pair(x, y);
+}
+
+void WPISwerveDrive::SetShouldSwerveLock(bool shouldLock)
+{
+    m_shouldSwerveLock = shouldLock;
 }

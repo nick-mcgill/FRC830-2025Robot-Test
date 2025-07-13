@@ -7,29 +7,15 @@ AlgaeRemover::AlgaeRemover()
     ctre::phoenix6::configs::Slot0Configs &slot0Configs = arm_config.Slot0
         .WithKP(ratbot::AlgaeRemoverConfig::Pivot::P)
         .WithKI(ratbot::AlgaeRemoverConfig::Pivot::I)
-        .WithKD(ratbot::AlgaeRemoverConfig::Pivot::D);
-
-    ctre::phoenix6::configs::FeedbackConfigs &arm_feedback_config = arm_config.Feedback
-        .WithSensorToMechanismRatio(ratbot::AlgaeRemoverConfig::Pivot::POS_CONV_FACTOR);
-    
+        .WithKD(ratbot::AlgaeRemoverConfig::Pivot::D)
+        .WithKG(ratbot::AlgaeRemoverConfig::Pivot::F);
     ctre::phoenix6::configs::MotorOutputConfigs &arm_output_config = arm_config.MotorOutput
         .WithInverted(ratbot::AlgaeRemoverConfig::Pivot::INVERTED)
         .WithNeutralMode(ratbot::AlgaeRemoverConfig::Pivot::IDLE_MODE);
     
-    ctre::phoenix6::configs::CurrentLimitsConfigs &arm_currentlim_config = arm_config.CurrentLimits
-        .WithSupplyCurrentLimit(ratbot::AlgaeRemoverConfig::Pivot::CURRENT_LIM)
-        .WithSupplyCurrentLimitEnable(true);
-        
-    ctre::phoenix6::configs::VoltageConfigs &arm_voltage_config = arm_config.Voltage
-        .WithPeakForwardVoltage(units::volt_t(ratbot::VOLTAGE_COMPENSATION))
-        .WithPeakReverseVoltage(-units::volt_t(ratbot::VOLTAGE_COMPENSATION));
-
     arm_config
         .WithSlot0(slot0Configs)
-        .WithFeedback(arm_feedback_config)
-        .WithMotorOutput(arm_output_config)
-        .WithCurrentLimits(arm_currentlim_config)
-        .WithVoltage(arm_voltage_config);
+        .WithMotorOutput(arm_output_config);
         
     /* Retry config apply up to 5 times, report if failure */
     ctre::phoenix::StatusCode status = ctre::phoenix::StatusCode::StatusCodeNotInitialized;
@@ -38,7 +24,7 @@ AlgaeRemover::AlgaeRemover()
         if (status.IsOK()) break;
     }
     if (!status.IsOK()) {
-        std::cout << "Could not apply configs, error code: " << status.GetName() << std::endl;
+        //std::cout << "Could not apply configs, error code: " << status.GetName() << std::endl;
     }
 
     // Remover Config    
@@ -55,19 +41,82 @@ AlgaeRemover::AlgaeRemover()
     END_RETRYING
 }
 
+#include <iostream>
+
 double AlgaeRemover::GetPivotAngle()
 {    
     return m_armMotor.GetPosition().GetValueAsDouble();
+}
+
+void AlgaeRemover::PivotAngleToTop(){
+    if (AlgaeRemover::GetPivotAngle() < ratbot::AlgaeRemoverConfig::Pivot::TOP_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(1.0);
+    }
+    else if(AlgaeRemover::GetPivotAngle() > ratbot::AlgaeRemoverConfig::Pivot::TOP_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(-1.0);
+    }else
+    {
+        AlgaeRemover::MoveArm(0.0);
+    }
+}
+void AlgaeRemover::PivotAngleToBottom(){
+    if (AlgaeRemover::GetPivotAngle() < ratbot::AlgaeRemoverConfig::Pivot::BOTTOM_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(1.0);
+    }
+    else if(AlgaeRemover::GetPivotAngle() > ratbot::AlgaeRemoverConfig::Pivot::BOTTOM_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(-1.0);
+    }else
+    {
+        AlgaeRemover::MoveArm(0.0);
+    }
+}
+void AlgaeRemover::PivotAngleToStow(){
+    if (AlgaeRemover::GetPivotAngle() < ratbot::AlgaeRemoverConfig::Pivot::STOW_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(0.0);
+    }
+    else if(AlgaeRemover::GetPivotAngle() > ratbot::AlgaeRemoverConfig::Pivot::STOW_REMOVER_POS)
+    {
+        AlgaeRemover::MoveArm(-1.0);
+    }else
+    {
+        AlgaeRemover::MoveArm(0.0);
+    }
+}
+void AlgaeRemover::MoveArm(double value) {
+    // std::cout << GetPivotAngle() << std::endl;
+
+    if (value == 1.0  && (GetPivotAngle() <= 8.28))
+    {
+        m_armMotor.Set(0.05);
+       // std::cout << "set going up" << std::endl;
+    }
+    else if ((value == -1.0) && (GetPivotAngle() >= -0.301)) 
+    {
+        m_armMotor.Set(-0.05);
+
+
+       // std::cout << "set going down" << std::endl;
+    } else 
+    {
+        m_armMotor.Set(0.0);
+       // std::cout << "stop" << std::endl;
+    }
 }
 
 double AlgaeRemover::GetWheelSpeed()
 {
      return m_armMotor.GetVelocity().GetValueAsDouble();
 }
+#include <iostream>
 
 void AlgaeRemover::ProfiledMoveToAngle(double angle)
 {
-    if (std::fabs(angle - m_ProfileStartPos) > 0.0001)
+    if (std::fabs(angle - m_ProfileStartPos) < 0.0001)
     {
         m_algaeRemoverState = 0;
     }
@@ -76,6 +125,7 @@ void AlgaeRemover::ProfiledMoveToAngle(double angle)
     {
      case 0: 
         {
+           // std::cout << "case 0" << std::endl;
             m_ProfileStartPos = GetPivotAngle();
 
             m_Timer.Stop();
@@ -83,16 +133,17 @@ void AlgaeRemover::ProfiledMoveToAngle(double angle)
             m_Timer.Start();
 
             m_algaeRemoverState++;
-
+           // std::cout << m_algaeRemoverState << std::endl;
             break;
         }
-
         case 1:
         {
+           // std::cout << "case 1" << std::endl;
             auto setPoint = m_Profile.Calculate(m_Timer.Get(),    
             frc::TrapezoidProfile<units::degrees>::State{units::degree_t{m_ProfileStartPos}, 0_deg_per_s},  
             frc::TrapezoidProfile<units::degrees>::State{units::degree_t{angle}, 0_deg_per_s}
             );
+           // std::cout << "got to setangle" << std::endl;
 
             SetAngle(setPoint.position.to<double>());
 
@@ -106,25 +157,26 @@ void AlgaeRemover::ProfiledMoveToAngle(double angle)
 
             break;
         }
-
         case 2: 
         {
 
+           // std::cout << "case 2" << std::endl;
             m_Timer.Stop();
 
             m_algaeRemoverState++;
 
             break;
         }
-
-        
         default:
             break; 
     }
+    //std::cout << "got thru profiled move" << std::endl;
+
 }
 
 void AlgaeRemover::SetAngle(double angle)
 {
+    //std::cout << "got inside setangle" << std::endl;
     if (angle > ratbot::AlgaeRemoverConfig::Pivot::MAX_PIVOT_ANGLE)
     {
         angle = ratbot::AlgaeRemoverConfig::Pivot::MAX_PIVOT_ANGLE;
@@ -133,6 +185,7 @@ void AlgaeRemover::SetAngle(double angle)
     {
         angle = ratbot::AlgaeRemoverConfig::Pivot::MIN_PIVOT_ANGLE;
     }
+   // std::cout << angle/360.0 * 4096.0 << std::endl;
 
     m_armMotor.SetPosition(units::angle::turn_t(angle/360.0 * 4096.0)); //documentation
 }
@@ -140,4 +193,9 @@ void AlgaeRemover::SetAngle(double angle)
 void AlgaeRemover::SetRemoverSpeed(double speed)
 {
     m_removerMotor.Set(speed);
+}
+
+void AlgaeRemover::ResetState()
+{
+    m_algaeRemoverState = 0;
 }

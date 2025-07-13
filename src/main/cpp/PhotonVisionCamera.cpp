@@ -9,15 +9,25 @@ PhotonVisionCamera::PhotonVisionCamera(std::string name, frc::Transform3d robotT
                                                                     robotToCamera);
 
     m_poseEstimator->SetMultiTagFallbackStrategy(photon::PoseStrategy::LOWEST_AMBIGUITY);
+
+    frc::SmartDashboard::PutData("vision_pose", &m_field);
 }
+
+
+#include <iostream>
 std::optional<photon::EstimatedRobotPose> PhotonVisionCamera::GetPose()
 {
-
+    std::cout << "got inside getpose" << std::endl;
     std::optional<photon::EstimatedRobotPose> estimate;
 
-    if (!m_LastResultIsEmpty && GetAprilTagID() != -1)
+    if (!m_LastResultIsEmpty && (GetAprilTagID() != -1))
     {
         estimate = m_poseEstimator->Update(m_lastResult);
+        if (estimate.has_value())
+        {
+            m_field.SetRobotPose(estimate.value().estimatedPose.ToPose2d());
+        }
+        std::cout << "updated result" << std::endl;
     }
 
     return estimate;
@@ -43,8 +53,20 @@ int PhotonVisionCamera::GetAprilTagID()
     int id = -1;
     if (!m_LastResultIsEmpty && m_lastResult.HasTargets())
     {
-        photon::PhotonTrackedTarget target = m_lastResult.GetBestTarget();
-        id = target.GetFiducialId();
+        auto targets = m_lastResult.GetTargets();
+        double lowestYaw = 360.0f;
+        double targetId = id;
+        for (const auto& target : targets)
+        {
+            if (std::fabs(target.GetYaw()) < lowestYaw)
+            {
+                lowestYaw = std::fabs(target.GetYaw());
+                targetId = target.GetFiducialId();
+            }
+        }
+        id = targetId;
+        // photon::PhotonTrackedTarget target = m_lastResult.GetBestTarget();
+        // id = target.GetFiducialId();
     }
     return id;
 }

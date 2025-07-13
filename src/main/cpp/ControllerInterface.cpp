@@ -8,6 +8,7 @@ void ControllerInterface::UpdateRobotControlData(RobotControlData &controlData)
     UpdateSmartplannerInput(controlData);
     UpdateClimberInput(controlData);
     UpdateAlgaeArmInput(controlData);
+    UpdateNavxInput(controlData);
 
     // code for the VibrateController function
     if (m_timer.Get().value()>=m_globalDuration)
@@ -41,11 +42,17 @@ void ControllerInterface::UpdateClimberInput(RobotControlData &controlData)
     }
 }
 
+void ControllerInterface::UpdateNavxInput(RobotControlData &controlData)
+{
+    controlData.resetNavx.reset = m_pilot.GetStartButtonPressed();
+}
+
 void ControllerInterface::UpdateSwerveInput(RobotControlData &controlData)
 {  
-    controlData.swerveInput.xTranslation = m_pilot.GetLeftY();
-    controlData.swerveInput.yTranslation = m_pilot.GetLeftX();
-    controlData.swerveInput.rotation = m_pilot.GetRightX();
+    
+    controlData.swerveInput.xTranslation = -m_pilot.GetLeftY();
+    controlData.swerveInput.yTranslation = -m_pilot.GetLeftX();
+    controlData.swerveInput.rotation = -m_pilot.GetRightX();
 
     auto tempTargetLeftFeeder = m_pilot.GetLeftTriggerAxis() > 0.1;
     auto tempTargetRightFeeder = m_pilot.GetRightTriggerAxis() > 0.1;
@@ -64,28 +71,54 @@ void ControllerInterface::UpdateSwerveInput(RobotControlData &controlData)
 
     m_prevLeftFeederButtonValue = tempTargetLeftFeeder;
     m_prevRightFeederButtonValue = tempTargetRightFeeder;
-}
 
+    controlData.swerveInput.goFieldOriented = m_pilot.GetRightBumper();
+}
+#include <iostream>
 void ControllerInterface::UpdateAlgaeArmInput(RobotControlData &controlData)
 {
+
     if (m_copilot.GetLeftBumperButtonPressed()) 
     {
         controlData.algaeInput.RunRemoverBottom = true;
+        controlData.algaeInput.RunRemoverStow = false;
+        controlData.algaeInput.RunRemoverTop = false;
     }
     else if (m_copilot.GetRightBumperButtonPressed()) 
     {
         controlData.algaeInput.RunRemoverTop = true;
+        controlData.algaeInput.RunRemoverBottom = false;
+        controlData.algaeInput.RunRemoverStow = false;
     }
     else if (m_copilot.GetStartButtonPressed()) 
     {
+       // std::cout << "run remover stow" << std::endl;
         controlData.algaeInput.RunRemoverStow = true;
+        controlData.algaeInput.RunRemoverBottom = false;
+        controlData.algaeInput.RunRemoverTop = false;
     }
 }
 
 void ControllerInterface::UpdateLauncherInput(RobotControlData &controlData){
-    controlData.coralInput.setFlywheelToL1Speed = m_copilot.GetAButton();
-    controlData.coralInput.setFlywheelToL2Speed = m_copilot.GetBButton();
-    controlData.coralInput.disableFlywheels = m_copilot.GetYButton();
+    if (m_copilot.GetAButton())
+    {
+        controlData.coralInput.setFlywheelToL1Speed = true;
+        controlData.coralInput.disableFlywheels = false;
+        controlData.coralInput.setFlywheelToL2Speed = false;
+    }
+    else if (m_copilot.GetBButton())
+    {
+        controlData.coralInput.setFlywheelToL2Speed = true;
+        controlData.coralInput.disableFlywheels = false;
+        controlData.coralInput.setFlywheelToL1Speed = false;
+    }
+    else
+    {
+        controlData.coralInput.disableFlywheels = true;
+        controlData.coralInput.setFlywheelToL1Speed = false;
+        controlData.coralInput.setFlywheelToL2Speed = false;
+    }
+    
 
     if (m_copilot.GetXButton())
     {
