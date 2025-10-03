@@ -32,11 +32,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-build-cache-
 
-    - name: Add repository to git safe directories
-      run: git config --global --add safe.directory $GITHUB_WORKSPACE
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew      
-
-    - name: Compile and run tests on robot code
-      run: ./gradlew build
+    - name: Build robot code
+      run: |
+      git config --global --add safe.directory $GITHUB_WORKSPACE
+      chmod +x gradlew
+      ./gradlew build
